@@ -2,7 +2,9 @@ package Cartoon;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import Cartoon.utils.ImageUtils;
 import javafx.animation.Animation;
@@ -51,6 +53,10 @@ public class Breakout {
     private List<BreakoutComponent> _components;
     // A reference to the parent scene to access the controls
     private GameScene _mainScene;
+    // The set of keys being pressed
+    private Set<KeyCode> _pressedKeyCodes;
+    // A timer for toggle AI
+    private long _time;
     
     /**
      * Creates a Breakout, which represents the core of the game without the controls
@@ -70,6 +76,8 @@ public class Breakout {
         _board = new BreakoutBoard();
         _gameGroup.getChildren().addAll(_board.getNodes());
         _components.add(_board);
+        _pressedKeyCodes = new HashSet<>();
+        _time = System.currentTimeMillis();
         this.createBall();
         this.createLights();
         this.createEventHandlers();
@@ -168,65 +176,82 @@ public class Breakout {
     
     // Defines and initializes the key handlers. See the help label to see control mappings.
     private void createEventHandlers() {
-        _mainScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
-            @Override
-            public void handle(KeyEvent event) {
-                KeyCode keyCode = event.getCode();
-                if (keyCode.equals(KeyCode.W)) {
-                    Breakout.this.translateCamera(0, 0, Constants.CAMERA_SPEED);
-                } else if (keyCode.equals(KeyCode.S)) {
-                    Breakout.this.translateCamera(0, 0, -Constants.CAMERA_SPEED);
-                } else if (keyCode.equals(KeyCode.Q)) {
-                    Breakout.this.rotateCamera(0, Constants.CAMERA_ROT_SPEED);
-                } else if (keyCode.equals(KeyCode.Z)) {
-                    Breakout.this.rotateCamera(0, -Constants.CAMERA_ROT_SPEED);
-                } else if (keyCode.equals(KeyCode.E)) {
-                    Breakout.this.rotateCamera(Constants.CAMERA_ROT_SPEED, 0);
-                } else if (keyCode.equals(KeyCode.C)) {
-                    Breakout.this.rotateCamera(-Constants.CAMERA_ROT_SPEED, 0);
-                } else if (keyCode.equals(KeyCode.SPACE)) {
-                    Breakout.this.translateCamera(0, -Constants.CAMERA_SPEED, 0);
-                } else if (keyCode.equals(KeyCode.X)) {
-                    Breakout.this.translateCamera(0, Constants.CAMERA_SPEED, 0);
-                } else if (keyCode.equals(KeyCode.D)) {
-                    Breakout.this.translateCamera(Constants.CAMERA_SPEED, 0, 0);
-                } else if (keyCode.equals(KeyCode.A)) {
-                    Breakout.this.translateCamera(-Constants.CAMERA_SPEED, 0, 0);
-                } else if (keyCode.equals(KeyCode.ESCAPE)) {
-                    Breakout.this.resetCamera();
-                    Breakout.this._mainScene.switchScene(true);
-                } else if (keyCode.equals(KeyCode.R)) {
-                    Breakout.this.resetCamera();
-                } else if (keyCode.equals(KeyCode.F)) {
-                    _board.toggleAIControlled();
-                } else if (keyCode.equals(KeyCode.V)) {
-                    _ball.changeColor();
-                } else if (!_board.isAIControlled()) {
-                    if (keyCode.equals(KeyCode.UP)) {
-                        double y = _board.move(0, Constants.BOARD_VELOCITY).getY();
-                        Breakout.this.translateCamera(0, -y, 0);
-                    } else if (keyCode.equals(KeyCode.DOWN)) {
-                        double y = _board.move(0, -Constants.BOARD_VELOCITY).getY();
-                        Breakout.this.translateCamera(0, -y, 0);
-                    } else if (keyCode.equals(KeyCode.LEFT)) {
-                        double x = _board.move(-Constants.BOARD_VELOCITY, 0).getX();
-                        Breakout.this.translateCamera(x, 0, 0);
-                    } else if (keyCode.equals(KeyCode.RIGHT)) {
-                        double x = _board.move(Constants.BOARD_VELOCITY, 0).getX();
-                        Breakout.this.translateCamera(x, 0, 0);
-                    }
-                }
-                Point3D loc = _camera.getLocalToParentTransform().transform(0, 0, 0);
-                _mainScene.getCameraLabel().setText("Camera Location: " + loc);
-                event.consume();
+    	_mainScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+    		@Override
+    		public void handle(KeyEvent event) {
+    			_pressedKeyCodes.add(event.getCode());
+    			event.consume();
+    		}
+    	});
+    	_mainScene.setOnKeyReleased(new EventHandler<KeyEvent>() {
+    		@Override
+    		public void handle(KeyEvent event) {
+    			_pressedKeyCodes.remove(event.getCode());
+    			event.consume();
+    		}
+    	});
+    }
+    
+    private void handleKeyCode(KeyCode keyCode) {
+    	if (keyCode.equals(KeyCode.W)) {
+            Breakout.this.translateCamera(0, 0, Constants.CAMERA_SPEED);
+        } else if (keyCode.equals(KeyCode.S)) {
+            Breakout.this.translateCamera(0, 0, -Constants.CAMERA_SPEED);
+        } else if (keyCode.equals(KeyCode.Q)) {
+            Breakout.this.rotateCamera(0, Constants.CAMERA_ROT_SPEED);
+        } else if (keyCode.equals(KeyCode.Z)) {
+            Breakout.this.rotateCamera(0, -Constants.CAMERA_ROT_SPEED);
+        } else if (keyCode.equals(KeyCode.E)) {
+            Breakout.this.rotateCamera(Constants.CAMERA_ROT_SPEED, 0);
+        } else if (keyCode.equals(KeyCode.C)) {
+            Breakout.this.rotateCamera(-Constants.CAMERA_ROT_SPEED, 0);
+        } else if (keyCode.equals(KeyCode.SPACE)) {
+            Breakout.this.translateCamera(0, -Constants.CAMERA_SPEED, 0);
+        } else if (keyCode.equals(KeyCode.X)) {
+            Breakout.this.translateCamera(0, Constants.CAMERA_SPEED, 0);
+        } else if (keyCode.equals(KeyCode.D)) {
+            Breakout.this.translateCamera(Constants.CAMERA_SPEED, 0, 0);
+        } else if (keyCode.equals(KeyCode.A)) {
+            Breakout.this.translateCamera(-Constants.CAMERA_SPEED, 0, 0);
+        } else if (keyCode.equals(KeyCode.ESCAPE)) {
+            Breakout.this.resetCamera();
+            Breakout.this._mainScene.switchScene(true);
+        } else if (keyCode.equals(KeyCode.R)) {
+            Breakout.this.resetCamera();
+        } else if (keyCode.equals(KeyCode.F)) {
+        	if (System.currentTimeMillis() - _time > 250) {
+        		_board.toggleAIControlled();
+                _time = System.currentTimeMillis();
+        	}
+            
+        } else if (keyCode.equals(KeyCode.V)) {
+            _ball.changeColor();
+        } else if (!_board.isAIControlled()) {
+            if (keyCode.equals(KeyCode.UP)) {
+                double y = _board.move(0, Constants.BOARD_VELOCITY).getY();
+                //Breakout.this.translateCamera(0, -y, 0);
+            } else if (keyCode.equals(KeyCode.DOWN)) {
+                double y = _board.move(0, -Constants.BOARD_VELOCITY).getY();
+                //Breakout.this.translateCamera(0, -y, 0);
+            } else if (keyCode.equals(KeyCode.LEFT)) {
+                double x = _board.move(-Constants.BOARD_VELOCITY, 0).getX();
+                //Breakout.this.translateCamera(x, 0, 0);
+            } else if (keyCode.equals(KeyCode.RIGHT)) {
+                double x = _board.move(Constants.BOARD_VELOCITY, 0).getX();
+                //Breakout.this.translateCamera(x, 0, 0);
             }
-        });
+        }
+        Point3D loc = _camera.getLocalToParentTransform().transform(0, 0, 0);
+        _mainScene.getCameraLabel().setText("Camera Location: " + loc);
     }
     // This class represents the event handler for the timeline
     private class TimeHandler implements EventHandler<ActionEvent> {
         
         @Override
         public void handle(ActionEvent event) {
+        	for (KeyCode c : _pressedKeyCodes) {
+        		Breakout.this.handleKeyCode(c);
+        	}
             // Moves the ball
             _ball.update();
             // Checks for collisions

@@ -41,7 +41,7 @@ public class Constants {
     public static final double BOARD_DEPTH = 35;
     public static final double BALL_RADIUS = 10;
     public static final int BRICK_UPDATE_TIME = 10;
-    public static final int BRICK_REGEN_TIME = 180;
+    public static final int BRICK_REGEN_TIME = 1800;
     public static final double CAMERA_Z = 2730;
     public static final double MAX_X = BRICKS_PER_ROW * BRICK_WIDTH;
     public static final double MAX_Y = NUM_ROWS * BRICK_HEIGHT;
